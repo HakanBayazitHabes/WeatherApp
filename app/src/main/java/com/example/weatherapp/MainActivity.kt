@@ -76,6 +76,23 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    private fun getLocationWeatherDetails() {
+        if(Constants.isNetworkAvailable(this@MainActivity)){
+            Toast.makeText(
+                this@MainActivity,
+                "You have connected to the internet. Now you can make API calls.",
+                Toast.LENGTH_SHORT
+            ).show()
+
+        }else{
+            Toast.makeText(
+                this@MainActivity,
+                "No internet connection available.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     private fun showRationalDialogForPermissions() {
         AlertDialog.Builder(this)
             .setMessage("It looks like you have turned off permissions required for this feature. It can be enabled under Application Settings")
@@ -121,6 +138,7 @@ class MainActivity : AppCompatActivity() {
                 "Latitude: $latitude Longitude: $longitude",
                 Toast.LENGTH_SHORT
             ).show()
+            getLocationWeatherDetails()
         }
     }
 
