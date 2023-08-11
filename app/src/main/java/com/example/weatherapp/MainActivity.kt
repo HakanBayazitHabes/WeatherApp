@@ -2,19 +2,18 @@ package com.example.weatherapp
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.core.app.ActivityCompat
+import androidx.appcompat.app.AppCompatActivity
 import com.example.weatherapp.models.WeatherResponse
 import com.example.weatherapp.network.WeatherService
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -22,7 +21,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
+import com.google.gson.Gson
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
@@ -30,9 +29,13 @@ import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import retrofit2.*
 import retrofit2.converter.gson.GsonConverterFactory
 
+
+//import retrofit2.converter.gson.GsonConverterFactory
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var mFusedLocationClient: FusedLocationProviderClient
+    private var mProgressDialog: Dialog? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -83,21 +86,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun getLocationWeatherDetails(latitude: Double, longitude: Double) {
         if (Constants.isNetworkAvailable(this@MainActivity)) {
-
             val retrofit: Retrofit = Retrofit.Builder()
                 .baseUrl(Constants.BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create(Gson()))
                 .build()
 
             val services: WeatherService = retrofit
-                .create<WeatherService>(WeatherService::class.java)
+                .create(WeatherService::class.java)
 
             val listCall: Call<WeatherResponse> = services.getWeather(
                 latitude, longitude, Constants.METRIC_UNIT, Constants.APP_ID
             )
 
+            showProgressDialog()
+
             listCall.enqueue(object : Callback<WeatherResponse> {
-                    override fun onFailure(call: Call<WeatherResponse>, t: Throwable) {
+                override fun onFailure(call: Call<WeatherResponse>, t: Throwable) {
                     Log.i("Error", t.message.toString())
                 }
 
@@ -105,12 +109,12 @@ class MainActivity : AppCompatActivity() {
                     call: Call<WeatherResponse>,
                     response: Response<WeatherResponse>
                 ) {
-                    if (response!!.isSuccessful) {
-                        val weatherList: WeatherResponse? = response.body()
+                    if (response.isSuccessful) {
+                        hideProgressDialog()
+                        val weatherList: WeatherResponse = response.body()
                         Log.i("Response Result", "$weatherList")
                     } else {
-                        val rc = response.code()
-                        when (rc) {
+                        when (response.code()) {
                             400 -> {
                                 Log.i("Error 400", "Bad connection")
                             }
@@ -192,5 +196,17 @@ class MainActivity : AppCompatActivity() {
 
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
                 locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+
+    private fun showProgressDialog() {
+        mProgressDialog = Dialog(this)
+        mProgressDialog!!.setContentView(R.layout.dialog_custom_progress)
+        mProgressDialog!!.show()
+    }
+
+    private fun hideProgressDialog() {
+        if (mProgressDialog != null) {
+            mProgressDialog!!.dismiss()
+        }
     }
 }
