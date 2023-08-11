@@ -11,9 +11,12 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
+import com.example.weatherapp.models.WeatherResponse
+import com.example.weatherapp.network.WeatherService
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -24,6 +27,8 @@ import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
+import retrofit2.*
+import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
 
@@ -76,15 +81,53 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun getLocationWeatherDetails() {
-        if(Constants.isNetworkAvailable(this@MainActivity)){
-            Toast.makeText(
-                this@MainActivity,
-                "You have connected to the internet. Now you can make API calls.",
-                Toast.LENGTH_SHORT
-            ).show()
+    private fun getLocationWeatherDetails(latitude: Double, longitude: Double) {
+        if (Constants.isNetworkAvailable(this@MainActivity)) {
 
-        }else{
+            val retrofit: Retrofit = Retrofit.Builder()
+                .baseUrl(Constants.BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+
+            val services: WeatherService = retrofit
+                .create<WeatherService>(WeatherService::class.java)
+
+            val listCall: Call<WeatherResponse> = services.getWeather(
+                latitude, longitude, Constants.METRIC_UNIT, Constants.APP_ID
+            )
+
+            listCall.enqueue(object : Callback<WeatherResponse> {
+                    override fun onFailure(call: Call<WeatherResponse>, t: Throwable) {
+                    Log.i("Error", t.message.toString())
+                }
+
+                override fun onResponse(
+                    call: Call<WeatherResponse>,
+                    response: Response<WeatherResponse>
+                ) {
+                    if (response!!.isSuccessful) {
+                        val weatherList: WeatherResponse? = response.body()
+                        Log.i("Response Result", "$weatherList")
+                    } else {
+                        val rc = response.code()
+                        when (rc) {
+                            400 -> {
+                                Log.i("Error 400", "Bad connection")
+                            }
+
+                            404 -> {
+                                Log.i("Error 404", "Not found")
+                            }
+
+                            else -> {
+                                Log.i("Error", "Generic error")
+                            }
+                        }
+                    }
+                }
+            })
+
+        } else {
             Toast.makeText(
                 this@MainActivity,
                 "No internet connection available.",
@@ -118,7 +161,7 @@ class MainActivity : AppCompatActivity() {
         mLocationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         //setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
         //val mLocationRequest =
-            //LocationRequest.Builder(1000L).setPriority(Priority.PRIORITY_HIGH_ACCURACY).build()
+        //LocationRequest.Builder(1000L).setPriority(Priority.PRIORITY_HIGH_ACCURACY).build()
 
         mFusedLocationClient.requestLocationUpdates(
             mLocationRequest,
@@ -138,7 +181,7 @@ class MainActivity : AppCompatActivity() {
                 "Latitude: $latitude Longitude: $longitude",
                 Toast.LENGTH_SHORT
             ).show()
-            getLocationWeatherDetails()
+            getLocationWeatherDetails(latitude!!, longitude!!)
         }
     }
 
