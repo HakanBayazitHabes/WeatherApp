@@ -14,6 +14,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.example.weatherapp.databinding.ActivityMainBinding
 import com.example.weatherapp.models.WeatherResponse
 import com.example.weatherapp.network.WeatherService
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -36,9 +37,11 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var mFusedLocationClient: FusedLocationProviderClient
     private var mProgressDialog: Dialog? = null
+    private lateinit var binding: ActivityMainBinding
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
@@ -88,16 +91,15 @@ class MainActivity : AppCompatActivity() {
         if (Constants.isNetworkAvailable(this@MainActivity)) {
             val retrofit: Retrofit = Retrofit.Builder()
                 .baseUrl(Constants.BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create(Gson()))
+                .addConverterFactory(GsonConverterFactory.create())
                 .build()
 
-            val services: WeatherService = retrofit
-                .create(WeatherService::class.java)
+            val services: WeatherService =
+                retrofit.create<WeatherService>(WeatherService::class.java)
 
             val listCall: Call<WeatherResponse> = services.getWeather(
                 latitude, longitude, Constants.METRIC_UNIT, Constants.APP_ID
             )
-
             showProgressDialog()
 
             listCall.enqueue(object : Callback<WeatherResponse> {
@@ -111,7 +113,8 @@ class MainActivity : AppCompatActivity() {
                 ) {
                     if (response.isSuccessful) {
                         hideProgressDialog()
-                        val weatherList: WeatherResponse = response.body()
+                        val weatherList: WeatherResponse = response.body()!!
+                        setupUI(weatherList)
                         Log.i("Response Result", "$weatherList")
                     } else {
                         when (response.code()) {
@@ -209,4 +212,26 @@ class MainActivity : AppCompatActivity() {
             mProgressDialog!!.dismiss()
         }
     }
+
+    private fun setupUI(weatherList: WeatherResponse) {
+        for (i in weatherList.weather.indices) {
+            Log.i("Weather Name", weatherList.weather.toString())
+
+            binding.tvMain.text = weatherList.weather[i].main
+            binding.tvMainDescription.text =
+                weatherList.weather[i].description
+            binding.tvTemp.text =
+                weatherList.main.temp.toString() + getUnit(application.resources.configuration.locales.toString())
+        }
+    }
+
+
+    private fun getUnit(value: String): String? {
+        var value = "°C"
+        if ("US" == value || "LR" == value || "MM" == value) {
+            value = "°F"
+        }
+        return value
+    }
+
 }

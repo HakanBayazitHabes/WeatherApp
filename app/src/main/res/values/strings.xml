@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">WeatherApp</string>
     <string name="please_wait">Please wait...</string>
+
+    <!--TODO (STEP 4: All the string values are added here.)-->
+    <!--START-->
+    <string name="image_contentDescription">image</string>
+    <string name="miles_per_hour">miles/hour</string>
+    <!--END-->
 </resources>
