@@ -29,6 +29,10 @@ import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import retrofit2.*
 import retrofit2.converter.gson.GsonConverterFactory
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 
 //import retrofit2.converter.gson.GsonConverterFactory
@@ -222,6 +226,18 @@ class MainActivity : AppCompatActivity() {
                 weatherList.weather[i].description
             binding.tvTemp.text =
                 weatherList.main.temp.toString() + getUnit(application.resources.configuration.locales.toString())
+
+            binding.tvHumidity.text = weatherList.main.humidity.toString() + " per cent"
+            binding.tvMin.text = weatherList.main.temp_min.toString() + " min"
+            binding.tvMax.text = weatherList.main.temp_max.toString() + " max"
+            binding.tvSpeed.text = weatherList.wind.speed.toString()
+            binding.tvName.text = weatherList.name
+            binding.tvCountry.text = weatherList.sys.country
+
+
+
+            binding.tvSunriseTime.text = unixTime(weatherList.sys.sunrise)
+            binding.tvSunsetTime.text = unixTime(weatherList.sys.sunset)
         }
     }
 
@@ -232,6 +248,14 @@ class MainActivity : AppCompatActivity() {
             value = "°F"
         }
         return value
+    }
+
+    private fun unixTime(timex : Long) :String?{
+        val date = Date(timex*1000L)
+        val sdf = SimpleDateFormat("HH:mm")
+        sdf.timeZone = TimeZone.getTimeZone("GMT-4")
+        val formattedDate = sdf.format(date)
+        return formattedDate
     }
 
 }
